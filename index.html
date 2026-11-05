@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Neon Worlds · sci-fi worlds with endless synth music</title>
+  <meta name="description" content="Animated pixel-art nights in the worlds of science fiction, from Night City to Arrakeen, with endless synth music composed live in your browser." />
+  <meta property="og:title" content="Neon Worlds" />
+  <meta property="og:description" content="Pixel-art sci-fi worlds with endless synth music made live in your browser." />
+  <meta property="og:image" content="https://rendorf.github.io/neon-worlds/og.png" />
+  <meta property="og:url" content="https://rendorf.github.io/neon-worlds/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#08060f" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2308060f'/%3E%3Crect x='2' y='6' width='3' height='8' fill='%2305d9e8'/%3E%3Crect x='6' y='2' width='4' height='12' fill='%23ff2a6d'/%3E%3Crect x='11' y='5' width='3' height='9' fill='%23f9f871'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="scene" role="img" aria-label="Animated pixel-art scene"></canvas>
+    <div class="crt" aria-hidden="true"></div>
+    <div class="fade" aria-hidden="true"></div>
+
+    <header class="hud-top">
+      <div class="title-block">
+        <div class="title-row">
+          <h1 id="world-name">Neon Worlds</h1>
+          <button id="fav" class="icon-btn ghost" data-icon="heart" aria-label="Favourite this world (L)"></button>
+        </div>
+        <p id="world-meta" class="meta"></p>
+        <div class="pills">
+          <span id="world-source" class="pill"></span>
+          <button id="passport" class="pill" aria-label="Passport: worlds visited"></button>
+          <a class="pill credit" href="https://loficities.com" target="_blank" rel="noopener" title="Neon Worlds is inspired by Lofi Cities">inspired by loficities.com ↗</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="hud-bottom">
+      <div class="chips" role="toolbar" aria-label="Scene">
+        <button id="chip-world" class="chip" data-icon="globe" aria-label="All worlds (/)"><span class="chip-label"></span><span class="chip-sub mono"></span></button>
+        <button id="chip-tour" class="chip" data-icon="tour" aria-label="World tour (C)"><span class="chip-label">Tour</span><span class="chip-sub mono">off</span></button>
+        <button id="chip-weather" class="chip" data-icon="weather" aria-label="Weather (W)"><span class="chip-label">Weather</span><span class="chip-sub mono"></span></button>
+        <button id="chip-vibe" class="chip" data-icon="vibe" aria-label="Vibe (V)"><span class="chip-label">Vibe</span><span class="chip-sub mono"></span></button>
+      </div>
+      <div class="bar">
+        <div class="bar-row">
+          <button id="play" class="play-btn" data-icon="play" aria-label="Play music (Space)"></button>
+          <button id="next" class="icon-btn" data-icon="next" aria-label="Next track (N)"></button>
+          <button id="queue" class="icon-btn" data-icon="queue" aria-label="Up next (Q)"></button>
+          <div class="now">
+            <div id="np-title">Press play for endless synth</div>
+            <div id="np-sub" class="meta mono">music is generated live in your browser</div>
+          </div>
+          <button id="btn-more" class="icon-btn more-btn" data-icon="settings" aria-label="More"></button>
+          <div class="bar-actions">
+            <button id="btn-mixer" class="icon-btn" data-icon="mixer" aria-label="Sound mixer (M)"></button>
+            <button id="btn-timer" class="icon-btn" data-icon="timer" aria-label="Focus timer and tasks (T)"></button>
+            <button id="btn-save" class="icon-btn" data-icon="camera" aria-label="Save this scene (S)"></button>
+            <button id="btn-share" class="icon-btn" data-icon="share" aria-label="Share this world"></button>
+            <button id="btn-pip" class="icon-btn" data-icon="pip" aria-label="Mini player (P)"></button>
+            <button id="btn-full" class="icon-btn" data-icon="fullscreen" aria-label="Fullscreen (F)"></button>
+            <button id="btn-settings" class="icon-btn" data-icon="settings" aria-label="Settings (,)"></button>
+            <button id="btn-help" class="icon-btn" data-icon="help" aria-label="About and shortcuts (?)"></button>
+          </div>
+        </div>
+        <div class="bar-row sliders">
+          <label class="slider" title="Music volume"><span data-icon="music"></span><input id="vol-music" type="range" min="0" max="1" step="0.01" aria-label="Music volume" /></label>
+          <label class="slider" title="World sounds volume"><span data-icon="wind"></span><input id="vol-amb" type="range" min="0" max="1" step="0.01" aria-label="World sounds volume" /></label>
+          <div class="progress" aria-hidden="true"><div id="np-progress"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-root"></div>
+    <div id="toasts" aria-live="polite"></div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
