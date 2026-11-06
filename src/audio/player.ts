@@ -187,13 +187,13 @@ export function scheduleStep(e: AudioEngine, style: MusicStyle, track: Track, bu
         if (style.kit) e.playDrum(ev.role, style.kit, when, ev.vel, bus, lv);
         break;
       case 'bass':
-        if (style.bass) e.playVoice(style.bass, ev.midi, when, dur * 0.92, ev.vel, bus, 'dry', lv);
+        if (style.bass) e.playVoice(style.bass, ev.midi, when, dur * 0.92, ev.vel, bus, 'dry', lv, ev.bright);
         break;
       case 'pad':
-        if (style.pad) e.playVoice(style.pad, ev.midi, when, dur, ev.vel, bus, 'duck', lv);
+        if (style.pad) e.playVoice(style.pad, ev.midi, when, dur, ev.vel, bus, 'duck', lv, ev.bright);
         break;
       case 'arp':
-        if (style.arp) e.playVoice(style.arp, ev.midi, when, dur * 0.8, ev.vel, bus, 'duck', lv);
+        if (style.arp) e.playVoice(style.arp, ev.midi, when, dur * 0.8, ev.vel, bus, 'duck', lv, ev.bright);
         break;
       case 'lead':
         if (style.lead) e.playVoice(style.lead, ev.midi, when, dur * 0.95, ev.vel, bus, 'duck', lv);

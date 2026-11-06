@@ -12,6 +12,8 @@ export interface NoteEvent {
   /** duration in 16th steps */
   dur: number;
   vel: number;
+  /** filter brightness 0..1 for voices with a sweep (long form only) */
+  bright?: number;
 }
 
 export interface Section {
@@ -47,6 +49,7 @@ export interface Track {
   arpShape: MusicStyle['arpShape'];
   leadOctave: number;
   vibe: Vibe;
+  form: 'standard' | 'long';
 }
 
 export const BASS_PATTERNS: Record<BassPattern, { mask: string; dur: number }> = {
@@ -58,6 +61,7 @@ export const BASS_PATTERNS: Record<BassPattern, { mask: string; dur: number }> =
   sustain: { mask: 'x...............', dur: 16 },
   halves: { mask: 'x.......x.......', dur: 8 },
   gallop: { mask: 'x.xxx.xxx.xxx.xx', dur: 1 },
+  rolling: { mask: '.xxx.xxx.xxx.xxx', dur: 1 },
 };
 
 export const VIBE_TEMPO: Record<Vibe, number> = { calm: 0.88, focus: 1, drive: 1.1 };
@@ -97,10 +101,26 @@ function varyMotif(rng: Rng, m: (MotifNote | null)[]): (MotifNote | null)[] {
   });
 }
 
+type Plan = { name: string; bars: number; layers: Role[]; drums: 'A' | 'B'; leadMotif: 0 | 1 }[];
+
+/** Slow psybient arc: long atmospheric intro, a build, two grooves around a breakdown, long outro. */
+function longPlan(): Plan {
+  const groove: Role[] = ['kick', 'snare', 'hat', 'perc', 'bass', 'pad', 'arp', 'drone'];
+  return [
+    { name: 'intro', bars: 16, layers: ['pad', 'drone', 'bell', 'arp'], drums: 'A', leadMotif: 0 },
+    { name: 'build', bars: 16, layers: ['pad', 'drone', 'arp', 'hat', 'perc', 'bass'], drums: 'A', leadMotif: 0 },
+    { name: 'A', bars: 32, layers: [...groove, 'bell'], drums: 'A', leadMotif: 0 },
+    { name: 'break', bars: 16, layers: ['pad', 'drone', 'arp', 'lead', 'bell'], drums: 'A', leadMotif: 1 },
+    { name: 'B', bars: 32, layers: [...groove, 'lead', 'openhat'], drums: 'B', leadMotif: 0 },
+    { name: 'outro', bars: 16, layers: ['pad', 'drone', 'arp', 'hat', 'bell'], drums: 'A', leadMotif: 1 },
+  ];
+}
+
 function sectionPlan(style: MusicStyle, vibe: Vibe, bpm: number): Section[] {
-  const m = bpm >= 104 ? 1.5 : 1;
+  const long = style.form === 'long';
+  const m = !long && bpm >= 104 ? 1.5 : 1;
   const all: Role[] = ['kick', 'snare', 'hat', 'perc', 'bass', 'pad', 'arp', 'drone'];
-  const base: { name: string; bars: number; layers: Role[]; drums: 'A' | 'B'; leadMotif: 0 | 1 }[] = [
+  const base: Plan = long ? longPlan() : [
     { name: 'intro', bars: 8, layers: ['pad', 'drone', 'hat', 'arp'], drums: 'A', leadMotif: 0 },
     { name: 'A', bars: 16, layers: [...all], drums: 'A', leadMotif: 0 },
     { name: 'B', bars: 16, layers: [...all, 'lead', 'openhat', 'bell'], drums: 'B', leadMotif: 0 },
@@ -174,6 +194,7 @@ export function composeTrack(style: MusicStyle, seed: number, vibe: Vibe = 'focu
     arpShape: style.arpShape,
     leadOctave: style.leadOctave,
     vibe,
+    form: style.form ?? 'standard',
   };
 }
 
@@ -184,6 +205,28 @@ export function totalSteps(track: Track): number {
 export function sectionAt(track: Track, bar: number): Section {
   for (const s of track.sections) if (bar < s.startBar + s.bars) return s;
   return track.sections[track.sections.length - 1];
+}
+
+/**
+ * Filter brightness over a long-form track: closed in the intro, opening through the build,
+ * breathing on a 16-bar wave in the grooves, closing into the breakdown and the outro.
+ */
+export function brightnessAt(track: Track, step: number): number | undefined {
+  if (track.form !== 'long') return undefined;
+  const bar = Math.floor(step / 16);
+  const sec = sectionAt(track, bar);
+  const x = (bar - sec.startBar + (step % 16) / 16) / sec.bars; // 0..1 through the section
+  const wave = (bars: number) => 0.5 - 0.5 * Math.cos((2 * Math.PI * (bar - sec.startBar + (step % 16) / 16)) / bars);
+  let b: number;
+  switch (sec.name) {
+    case 'intro': b = 0.05 + 0.25 * x; break;
+    case 'build': b = 0.3 + 0.4 * x; break;
+    case 'A': b = 0.55 + 0.3 * wave(16); break;
+    case 'break': b = x < 0.5 ? 0.7 - 0.9 * x : 0.25 + 0.5 * (x - 0.5); break;
+    case 'B': b = Math.min(1, 0.5 + 0.9 * x) - 0.15 * wave(8); break;
+    default: b = 0.6 - 0.5 * x;
+  }
+  return Math.max(0, Math.min(1, b));
 }
 
 export function chordAt(track: Track, bar: number): number {
@@ -207,7 +250,8 @@ export function eventsAt(track: Track, step: number): NoteEvent[] {
 
   // drums
   const drums = track.drums[sec.drums];
-  const fill = barIn === sec.bars - 1 && has('snare') && s >= 12 && sec.name !== 'outro';
+  const fill = track.form === 'standard' && barIn === sec.bars - 1 && has('snare') && s >= 12 && sec.name !== 'outro';
+  const bright = brightnessAt(track, step);
   for (const role of ['kick', 'snare', 'hat', 'openhat', 'perc'] as const) {
     if (!has(role)) continue;
     const pat = drums[role] ?? (role === 'openhat' ? undefined : track.drums.A[role]);
@@ -220,12 +264,13 @@ export function eventsAt(track: Track, step: number): NoteEvent[] {
   }
 
   // bass
-  if (has('bass')) {
+  // in the long form's build the bass waits for the second half
+  if (has('bass') && !(sec.name === 'build' && barIn < sec.bars / 2)) {
     const c = track.bass.mask[s];
     if (c && c !== '.') {
       const base = degreeToMidi(root, scale, chord);
       const midi = c === 'o' ? base + 12 : c === '5' ? degreeToMidi(root, scale, chord + 4) : base;
-      out.push({ role: 'bass', midi: [midi], dur: track.bass.dur, vel: (s % 4 === 0 ? 1 : 0.8) * lvl });
+      out.push({ role: 'bass', midi: [midi], dur: track.bass.dur, vel: (s % 4 === 0 ? 1 : 0.8) * lvl, bright });
     }
   }
 
@@ -233,7 +278,7 @@ export function eventsAt(track: Track, step: number): NoteEvent[] {
   if (has('pad') && s === 0 && bar % track.barsPerChord === 0) {
     const degs = [chord, chord + 2, chord + 4, chord + 6];
     const midi = degs.map((d) => degreeToMidi(root + 12, scale, d));
-    out.push({ role: 'pad', midi, dur: 16 * track.barsPerChord - 1, vel: 0.85 * lvl });
+    out.push({ role: 'pad', midi, dur: 16 * track.barsPerChord - 1, vel: 0.85 * lvl, bright });
   }
 
   // drone: every four bars
@@ -255,7 +300,7 @@ export function eventsAt(track: Track, step: number): NoteEvent[] {
       default: idx = Math.floor(h(7) * tones.length);
     }
     const skip = track.arpShape === 'random' && h(8) < 0.3;
-    if (!skip) out.push({ role: 'arp', midi: [tones[idx]], dur: arpEvery, vel: (0.6 + 0.4 * (s % 4 === 0 ? 1 : h(9))) * lvl });
+    if (!skip) out.push({ role: 'arp', midi: [tones[idx]], dur: arpEvery, vel: (0.6 + 0.4 * (s % 4 === 0 ? 1 : h(9))) * lvl, bright });
   }
 
   // lead

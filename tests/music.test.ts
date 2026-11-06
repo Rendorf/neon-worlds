@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { degreeToMidi, euclid, parsePattern, nearestChordTone, SCALES, midiToFreq } from '../src/audio/theory';
-import { composeTrack, eventsAt, totalSteps, sectionAt } from '../src/audio/composer';
-import { STYLES } from '../src/audio/styles';
+import { composeTrack, eventsAt, totalSteps, sectionAt, brightnessAt } from '../src/audio/composer';
+import { STYLES, STATIONS } from '../src/audio/styles';
 import { mulberry32, hash2, tick, phase } from '../src/scene/core';
 
 describe('theory', () => {
@@ -109,5 +109,53 @@ describe('composer', () => {
   it('different seeds give different tracks', () => {
     const titles = new Set(Array.from({ length: 20 }, (_, i) => composeTrack(STYLES.grid, i * 977).title));
     expect(titles.size).toBeGreaterThan(5);
+  });
+
+  describe('Silicon Based Lifeforms radio (long form)', () => {
+    const style = STATIONS.lifeforms.style;
+    const tr = composeTrack(style, 2026);
+    const rolesIn = (name: string) => {
+      const sec = tr.sections.find((x) => x.name === name)!;
+      const roles = new Set<string>();
+      for (let st = sec.startBar * 16; st < (sec.startBar + sec.bars) * 16; st++) for (const ev of eventsAt(tr, st)) roles.add(ev.role);
+      return roles;
+    };
+
+    it('runs about five minutes in six sections', () => {
+      expect(tr.sections.map((x) => x.name)).toEqual(['intro', 'build', 'A', 'break', 'B', 'outro']);
+      const seconds = (totalSteps(tr) * 60) / tr.bpm / 4;
+      expect(seconds).toBeGreaterThan(270);
+      expect(seconds).toBeLessThan(330);
+    });
+
+    it('intro is beatless, the kick arrives in the groove and leaves in the breakdown', () => {
+      expect(rolesIn('intro').has('kick')).toBe(false);
+      expect(rolesIn('build').has('kick')).toBe(false);
+      expect(rolesIn('A').has('kick')).toBe(true);
+      expect(rolesIn('break').has('kick')).toBe(false);
+      expect(rolesIn('B').has('lead')).toBe(true);
+    });
+
+    it('the filter opens from the intro into the groove and stays in 0..1', () => {
+      const at = (name: string, frac: number) => {
+        const sec = tr.sections.find((x) => x.name === name)!;
+        return brightnessAt(tr, Math.floor((sec.startBar + sec.bars * frac) * 16))!;
+      };
+      expect(at('intro', 0.1)).toBeLessThan(0.15);
+      expect(at('build', 0.9)).toBeGreaterThan(at('intro', 0.9));
+      expect(at('B', 0.9)).toBeGreaterThan(0.7);
+      for (let st = 0; st < totalSteps(tr); st += 5) {
+        const b = brightnessAt(tr, st)!;
+        expect(b).toBeGreaterThanOrEqual(0);
+        expect(b).toBeLessThanOrEqual(1);
+      }
+      for (const ev of eventsAt(tr, tr.sections[2].startBar * 16)) if (ev.role === 'arp' || ev.role === 'bass') expect(ev.bright).toBeDefined();
+    });
+
+    it('world styles keep their standard form and no sweep', () => {
+      const w = composeTrack(STYLES.nightCity, 3);
+      expect(w.form).toBe('standard');
+      expect(brightnessAt(w, 100)).toBeUndefined();
+    });
   });
 });

@@ -7,6 +7,8 @@ export interface Voice {
   /** semitone offset applied to every note */
   transpose?: number;
   filter: { type: BiquadFilterType; freq: number; q?: number; env?: number; decay?: number };
+  /** cutoff follows the track's brightness curve: freq at 0 = min, at 1 = max (long-form styles) */
+  sweep?: { min: number; max: number };
   env: { a: number; d: number; s: number; r: number };
   gain: number;
   vibrato?: { rate: number; depth: number; delay?: number };
@@ -46,7 +48,8 @@ export type BassPattern =
   | 'pulse'
   | 'sustain'
   | 'halves'
-  | 'gallop';
+  | 'gallop'
+  | 'rolling';
 
 export type Vibe = 'calm' | 'focus' | 'drive';
 
@@ -60,7 +63,9 @@ export interface MusicStyle {
   roots: number[];
   /** chord progressions as scale degrees (0 = tonic) */
   progressions: number[][];
-  barsPerChord: 1 | 2;
+  barsPerChord: 1 | 2 | 4;
+  /** 'long': slow-building five-minute arrangement with filter sweeps (radio stations) */
+  form?: 'standard' | 'long';
   kit: DrumKit | null;
   patterns: { A: DrumPattern; B: DrumPattern } | null;
   bass: Voice | null;

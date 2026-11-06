@@ -1,5 +1,6 @@
 import type { Weather } from '../scene/weather';
 import type { Vibe } from '../audio/types';
+import type { Station } from '../audio/styles';
 
 export interface Settings {
   crt: boolean;
@@ -13,6 +14,8 @@ export interface State {
   worldId: string;
   weatherByWorld: Record<string, Weather>;
   vibe: Vibe;
+  /** 'world' plays each world's own music; a radio station plays over every world */
+  station: Station;
   playing: boolean;
   musicVol: number;
   ambVol: number;
@@ -32,6 +35,7 @@ export const DEFAULTS: State = {
   worldId: 'night-city',
   weatherByWorld: {},
   vibe: 'focus',
+  station: 'world',
   playing: false,
   musicVol: 0.7,
   ambVol: 0.5,

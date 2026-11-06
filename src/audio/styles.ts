@@ -35,6 +35,13 @@ const V = {
 
   bell: { waves: ['sine'], fm: { ratio: 3.01, index: 3, decay: 0.5 }, filter: { type: 'lowpass', freq: 7000 }, env: { a: 0.002, d: 1.4, s: 0, r: 1.2 }, gain: 0.08, send: { reverb: 0.7, delay: 0.3 } },
   gamelan: { waves: ['sine'], fm: { ratio: 2.76, index: 2.4, decay: 0.7 }, filter: { type: 'lowpass', freq: 6000 }, env: { a: 0.002, d: 1.6, s: 0, r: 1.4 }, gain: 0.09, send: { reverb: 0.6 } },
+
+  // Silicon Based Lifeforms radio: warm psybient. Sweeping pads, a resonant 16th sequence, a soft rolling bass.
+  lifePad: { waves: ['sawtooth', 'sawtooth', 'triangle'], detune: 18, filter: { type: 'lowpass', freq: 1200, q: 0.9 }, sweep: { min: 420, max: 2600 }, env: { a: 2.2, d: 2, s: 0.85, r: 3.5 }, gain: 0.11, vibrato: { rate: 0.18, depth: 7 }, send: { reverb: 0.75, delay: 0.12 } },
+  lifeSeq: { waves: ['sawtooth', 'square'], detune: 5, filter: { type: 'lowpass', freq: 900, q: 8, env: 1400, decay: 0.11 }, sweep: { min: 260, max: 3400 }, env: { a: 0.002, d: 0.17, s: 0.12, r: 0.12 }, gain: 0.075, send: { delay: 0.5, reverb: 0.3 } },
+  lifeBass: { waves: ['sawtooth', 'sine'], detune: 3, filter: { type: 'lowpass', freq: 200, q: 3, env: 420, decay: 0.07 }, sweep: { min: 150, max: 420 }, env: { a: 0.003, d: 0.12, s: 0.35, r: 0.05 }, gain: 0.36 },
+  lifeLead: { waves: ['triangle', 'sine'], detune: 6, filter: { type: 'lowpass', freq: 2600, q: 0.6 }, env: { a: 0.14, d: 0.7, s: 0.7, r: 1.4 }, gain: 0.09, vibrato: { rate: 4.6, depth: 11, delay: 0.5 }, send: { reverb: 0.75, delay: 0.5 } },
+  lifeBell: { waves: ['sine'], fm: { ratio: 4.01, index: 1.6, decay: 0.4 }, filter: { type: 'lowpass', freq: 5200 }, env: { a: 0.002, d: 1.8, s: 0, r: 1.6 }, gain: 0.07, send: { reverb: 0.8, delay: 0.45 } },
 } satisfies Record<string, Voice>;
 
 // ---------- drum kits ----------
@@ -50,6 +57,7 @@ const KIT = {
   shaker: { kick: { f0: 95, f1: 42, decay: 0.45, gain: 0.7 }, snare: { kind: 'rim', decay: 0.1, tone: 500, gain: 0.3, verb: 0.7 }, hat: { decay: 0.05, open: 0.2, gain: 0.08 }, perc: { kind: 'shaker', gain: 0.4 } },
   brushes: { kick: { f0: 90, f1: 45, decay: 0.4, gain: 0.6 }, snare: { kind: 'rim', decay: 0.12, tone: 380, gain: 0.25, verb: 0.6 }, hat: { decay: 0.08, open: 0.25, gain: 0.06 }, perc: { kind: 'shaker', gain: 0.3 } },
   desert: { kick: { f0: 100, f1: 50, decay: 0.5, gain: 0.7 }, snare: { kind: 'rim', decay: 0.1, tone: 350, gain: 0.35, verb: 0.6 }, hat: { decay: 0.03, open: 0.2, gain: 0.08 }, perc: { kind: 'hand', gain: 0.7 } },
+  life: { kick: { f0: 115, f1: 46, decay: 0.42, gain: 0.9, click: 0.1 }, snare: { kind: 'clap', decay: 0.16, tone: 220, gain: 0.3, verb: 0.8 }, hat: { decay: 0.025, open: 0.18, gain: 0.1 }, perc: { kind: 'shaker', gain: 0.35 } },
   war: { kick: { f0: 130, f1: 40, decay: 0.5, gain: 1, drive: 0.6 }, snare: { kind: 'snare', decay: 0.25, tone: 170, gain: 0.55, verb: 0.45 }, hat: { decay: 0.04, open: 0.2, gain: 0.1 }, perc: { kind: 'taiko', gain: 0.6 } },
 } satisfies Record<string, DrumKit>;
 
@@ -200,4 +208,28 @@ export const STYLES = {
     lead: V.distLead, leadDensity: 0.5, leadOctave: 12, drone: V.droneLow, bell: null, sidechain: 0.3, delayBeats: 0.5,
     vocab: [['Fury', 'Chrome', 'Valhalla', 'Aqua', 'War', 'Doof', 'Fang', 'Gas Town'], ['Road', 'Rig', 'Witness', 'Cola', 'Pup', 'Warrior', 'Convoy', 'Guzzoline']],
   },
+  /** Not a world: the Silicon Based Lifeforms radio, in the style of Carbon Based Lifeforms. Plays over any world. */
+  lifeforms: {
+    id: 'silicon-based-lifeforms', label: 'psybient', bpm: 100, swing: 0, scale: 'minor', roots: [38, 40, 41, 43],
+    progressions: [[0, 5, 3, 6], [0, 6, 5, 6], [0, 3, 0, 5], [0, 5, 6, 4], [0, 0, 5, 5]], barsPerChord: 4, form: 'long',
+    kit: KIT.life,
+    patterns: {
+      A: { kick: FOUR, snare: '', hat: '..x...x...x...x.', perc: '.-x-.-x-.-x-.-x-' },
+      B: { kick: FOUR, snare: '....x.......x...', hat: '..x...x...x...x.', openhat: '..............x.', perc: 'x-x-x-x-x-x-x-x-' },
+    },
+    bass: V.lifeBass, bassPattern: 'rolling', pad: V.lifePad, arp: V.lifeSeq, arpRate: 16, arpShape: 'broken',
+    lead: V.lifeLead, leadDensity: 0.22, leadOctave: 24, drone: V.droneSpace, bell: V.lifeBell, sidechain: 0.5, delayBeats: 0.75,
+    vocab: [['Aeroponic', 'Mycelial', 'Chlorophyll', 'Lichen', 'Quartz', 'Spore', 'Tidal', 'Cellular', 'Biolume', 'Synaptic', 'Silicate', 'Nocturnal'], ['Garden', 'Drift', 'Bloom', 'Lattice', 'Habitat', 'Respiration', 'Canopy', 'Membrane', 'Genesis', 'Archive', 'Sleep', 'Tide']],
+  },
 } satisfies Record<string, MusicStyle>;
+
+/** Radio stations that play over every world. 'world' means each world's own music. */
+export type Station = 'world' | 'lifeforms';
+export const STATIONS: Record<Exclude<Station, 'world'>, { name: string; short: string; style: MusicStyle; blurb: string }> = {
+  lifeforms: {
+    name: 'Silicon Based Lifeforms',
+    short: 'SBL radio',
+    style: STYLES.lifeforms,
+    blurb: 'Slow-building psybient: warm sweeping pads, a resonant sequence that opens over minutes, a soft rolling bass and a greenhouse full of water.',
+  },
+};

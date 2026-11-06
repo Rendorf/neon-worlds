@@ -4,7 +4,8 @@ import { WEATHER_LABEL, weatherAmbience, type Weather } from './scene/weather';
 import { AudioEngine } from './audio/engine';
 import { MusicPlayer, type NowPlaying } from './audio/player';
 import { AmbiencePlayer, type AmbSource } from './audio/ambience';
-import type { Vibe } from './audio/types';
+import type { MusicStyle, Vibe } from './audio/types';
+import { STATIONS, type Station } from './audio/styles';
 import { WORLDS, worldById } from './worlds';
 import type { WorldDef } from './worlds/types';
 import { store, type State } from './state/store';
@@ -37,6 +38,7 @@ export class App {
       patch.weatherByWorld = { ...s.weatherByWorld, [world.id]: fromUrl.weather };
     }
     if (fromUrl.vibe) patch.vibe = fromUrl.vibe;
+    if (fromUrl.station) patch.station = fromUrl.station;
     store.set(patch);
 
     this.renderer = new Renderer($<HTMLCanvasElement>('scene'));
@@ -69,10 +71,41 @@ export class App {
 
   // ---------- audio ----------
 
+  /** The music that plays now: the radio station's, or this world's own. */
+  musicStyle(): MusicStyle {
+    const st = store.get().station;
+    return st === 'world' ? this.world.music : STATIONS[st].style;
+  }
+
+  stationName(): string {
+    const st = store.get().station;
+    return st === 'world' ? this.world.name : STATIONS[st].name;
+  }
+
+  setStation(station: Station): void {
+    if (station === store.get().station) return;
+    store.set({ station });
+    this.music?.setStyle(this.musicStyle());
+    this.applyAmbience();
+    this.syncUrl();
+    this.renderHud();
+  }
+
+  toggleStation(): void {
+    const next: Station = store.get().station === 'world' ? 'lifeforms' : 'world';
+    this.setStation(next);
+    toast(next === 'world' ? `Radio: each world's own music` : `Radio: ${STATIONS[next].name}, ${STATIONS[next].style.label} on every world`);
+  }
+
+  private syncUrl(): void {
+    const s = store.get();
+    writeUrl(this.world.id, this.weather(), s.vibe, s.station);
+  }
+
   private ensureAudio(): AudioEngine {
     if (!this.engine) {
       this.engine = new AudioEngine();
-      this.music = new MusicPlayer(this.engine, this.world.music);
+      this.music = new MusicPlayer(this.engine, this.musicStyle());
       this.music.setVibe(store.get().vibe);
       this.music.onChange = (np) => {
         this.nowPlaying = np;
@@ -113,6 +146,10 @@ export class App {
     for (const wx of weatherAmbience(this.weather())) {
       if (list.some((s) => s.kind === wx.kind)) continue;
       list.push({ id: `wx-${wx.kind}`, label: wx.label, kind: wx.kind as AmbSource['kind'], gain: wx.gain });
+    }
+    // the psybient station brings its own field recording: water in a greenhouse
+    if (store.get().station === 'lifeforms' && !list.some((s) => s.kind === 'water')) {
+      list.push({ id: 'radio-water', label: 'Greenhouse water (radio)', kind: 'water', gain: 0.32 });
     }
     return list;
   }
@@ -162,10 +199,10 @@ export class App {
       this.showWorld(world);
       store.set({ worldId: world.id });
       this.markVisited(world.id);
-      this.music?.setStyle(world.music);
+      this.music?.setStyle(this.musicStyle());
       this.applyAmbience();
       this.renderHud();
-      writeUrl(world.id, this.weather(), store.get().vibe);
+      this.syncUrl();
       fade.classList.remove('on');
     }, reduce ? 0 : 600);
     if (this.tourTimer !== null) this.startTour();
@@ -182,7 +219,7 @@ export class App {
     this.renderer.setWeather(w);
     this.applyAmbience();
     this.renderHud();
-    writeUrl(this.world.id, w, s.vibe);
+    this.syncUrl();
   }
 
   cycleWeather(): void {
@@ -195,7 +232,7 @@ export class App {
   setVibe(v: Vibe): void {
     store.set({ vibe: v });
     this.music?.setVibe(v);
-    writeUrl(this.world.id, this.weather(), v);
+    this.syncUrl();
     this.renderHud();
   }
 
@@ -260,7 +297,7 @@ export class App {
   }
 
   async share(): Promise<void> {
-    const url = shareUrl(this.world.id, this.weather(), store.get().vibe);
+    const url = shareUrl(this.world.id, this.weather(), store.get().vibe, store.get().station);
     const text = `${this.world.name}, from ${this.world.source}, with endless synth music`;
     try {
       if (navigator.share && matchMedia('(pointer: coarse)').matches) {
@@ -329,6 +366,7 @@ export class App {
     $('chip-tour').addEventListener('click', () => this.toggleTour());
     $('chip-weather').addEventListener('click', () => this.cycleWeather());
     $('chip-vibe').addEventListener('click', () => this.cycleVibe());
+    $('chip-radio').addEventListener('click', () => this.toggleStation());
     $('btn-mixer').addEventListener('click', () => panels.mixer(this));
     $('btn-timer').addEventListener('click', () => panels.timer(this));
     $('btn-save').addEventListener('click', () => this.saveScene());
@@ -355,7 +393,7 @@ export class App {
   private bindKeys(): void {
     window.addEventListener('keydown', (e) => {
       const target = e.target as HTMLElement;
-      if (target.closest('input, textarea, select') && e.key !== 'Escape') return;
+      if (target.closest?.('input, textarea, select') && e.key !== 'Escape') return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = e.key;
       const act: Record<string, () => void> = {
@@ -371,6 +409,7 @@ export class App {
         c: () => this.toggleTour(),
         w: () => this.cycleWeather(),
         v: () => this.cycleVibe(),
+        r: () => this.toggleStation(),
         m: () => panels.mixer(this),
         t: () => panels.timer(this),
         s: () => this.saveScene(),
@@ -383,7 +422,7 @@ export class App {
       };
       const fn = act[k] ?? act[k.toLowerCase()];
       if (!fn) return;
-      if (k === ' ' && target.closest('button')) return; // let space press focused buttons
+      if (k === ' ' && target.closest?.('button')) return; // let space press focused buttons
       e.preventDefault();
       fn();
     });
@@ -454,6 +493,9 @@ export class App {
     document.querySelector('#chip-tour .chip-sub')!.textContent = s.tour ? `${s.settings.tourMinutes} min` : 'off';
     document.querySelector('#chip-weather .chip-sub')!.textContent = WEATHER_LABEL[this.weather()];
     document.querySelector('#chip-vibe .chip-sub')!.textContent = s.vibe;
+    const radio = $('chip-radio');
+    radio.classList.toggle('on', s.station !== 'world');
+    radio.querySelector('.chip-sub')!.textContent = s.station === 'world' ? 'world' : STATIONS[s.station].short;
 
     const play = $('play');
     setIcon(play, s.playing ? 'pause' : 'play');
@@ -466,12 +508,12 @@ export class App {
     const np = this.nowPlaying;
     if (!s.playing || !np) {
       $('np-title').textContent = s.playing ? 'Tuning in…' : 'Press play for endless synth';
-      $('np-sub').textContent = `music is generated live in your browser · ${this.world.music.label}`;
+      $('np-sub').textContent = `music is generated live in your browser · ${this.musicStyle().label}${s.station === 'world' ? '' : ` · ${this.stationName()}`}`;
       $('np-progress').style.width = '0';
       return;
     }
     $('np-title').textContent = np.title;
-    $('np-sub').textContent = `${np.style.label} · ${np.bpm} bpm · ${np.vibe} · ${this.world.name}`;
+    $('np-sub').textContent = `${np.style.label} · ${np.bpm} bpm · ${np.vibe} · ${this.stationName()}`;
     $('np-progress').style.width = `${Math.round(np.progress * 100)}%`;
   }
 }

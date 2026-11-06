@@ -5,6 +5,7 @@ import { thumbnail } from '../scene/renderer';
 import { WEATHER_LABEL } from '../scene/weather';
 import { store, loadTasks, saveTasks, type Settings, type Task } from '../state/store';
 import type { Vibe } from '../audio/types';
+import { STATIONS, type Station } from '../audio/styles';
 import { h, icon, openPanel, closePanel, panelOpen, paintRange, toast } from './kit';
 
 // ---------- world picker ----------
@@ -90,14 +91,30 @@ export function refreshQueue(app: App): void {
   q.forEach((item, i) => {
     items.push(
       h('div', { class: 'queue-item' },
-        h('div', {}, item.title, h('br'), h('small', {}, `${app.world.music.label} · composed when it starts`)),
+        h('div', {}, item.title, h('br'), h('small', {}, `${app.musicStyle().label} · composed when it starts`)),
         h('button', { class: 'btn', onClick: () => { app.music?.playQueued(i); if (!store.get().playing) void app.togglePlay(); } }, 'Play now'),
       ),
     );
   });
   if (!q.length) items.push(h('p', { class: 'small' }, 'Tracks are composed on the fly for this world. Press play to start the queue.'));
-  items.push(h('h3', {}, 'Vibe'), vibeSeg(app));
+  items.push(h('h3', {}, 'Radio'), stationSeg(app), h('h3', {}, 'Vibe'), vibeSeg(app));
   queueBody.replaceChildren(h('div', { class: 'rows' }, ...items));
+}
+
+function stationSeg(app: App): HTMLElement {
+  const wrap = h('div');
+  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Radio station' });
+  const opts: [Station, string][] = [['world', 'This world'], ['lifeforms', STATIONS.lifeforms.name]];
+  const note = h('p', { class: 'small' });
+  const sync = () => {
+    const st = store.get().station;
+    seg.querySelectorAll('button').forEach((b, i) => { b.classList.toggle('on', opts[i][0] === st); b.setAttribute('aria-pressed', String(opts[i][0] === st)); });
+    note.textContent = st === 'world' ? `Each world plays its own style. Now: ${app.world.music.label}.` : `${STATIONS[st].blurb} Stays on as you change worlds.`;
+  };
+  for (const [st, label] of opts) seg.append(h('button', { onClick: () => { app.setStation(st); sync(); } }, label));
+  sync();
+  wrap.append(seg, note);
+  return wrap;
 }
 
 function vibeSeg(app: App): HTMLElement {
@@ -295,6 +312,8 @@ export function help(app: App, tab: 'about' | 'worlds' | 'keys' = 'about'): void
     about: () => h('div', {},
       h('p', {}, 'Neon Worlds pairs animated pixel-art scenes from the worlds of science fiction with endless music composed live in your browser. Each world has its own palette, weather, sounds and musical style, from Night City darksynth to the desert drones of Arrakeen.'),
       h('p', {}, 'Every scene is drawn by code at 480×270 and loops seamlessly every four minutes. Everyone sees the same moment of the loop. Every note and every sound is synthesised on the fly: there are no recordings, no samples and no tracking.'),
+      h('h3', {}, 'Silicon Based Lifeforms radio'),
+      h('p', {}, 'Press R, or choose Radio, to switch from each world\'s own music to Silicon Based Lifeforms: a station of slow, warm psybient in the style of the Swedish ambient duo ', h('a', { href: 'https://carbonbasedlifeforms.net', target: '_blank', rel: 'noopener' }, 'Carbon Based Lifeforms'), '. Long tracks build from a closed filter to full bloom over five minutes, and the station keeps playing as you travel between worlds. Like everything here it is composed live: a tribute, not their music, and not affiliated with them.'),
       h('p', {}, 'Use it as a calm background for work, study or winding down. Pick a world, press play, and let it run. Tour mode moves between worlds on its own. Click anywhere on the scene for a small surprise in that world\'s style.'),
       h('h3', {}, 'Inspired by Lofi Cities'),
       h('p', {}, 'Neon Worlds is inspired by ', h('a', { href: 'https://loficities.com', target: '_blank', rel: 'noopener' }, 'Lofi Cities (loficities.com)'), ', which pairs pixel-art city nights with lofi music made in the browser. Go and visit it: this is the same idea carried into science fiction.'),
@@ -311,7 +330,7 @@ export function help(app: App, tab: 'about' | 'worlds' | 'keys' = 'about'): void
       const rows: [string, string][] = [
         ['Space', 'Play or pause'], ['N', 'Next track'], ['Q', 'Up next and vibe'], ['/ or G', 'All worlds'],
         ['← →', 'Previous or next world'], ['↑ ↓', 'Music volume'], ['C', 'Tour on or off'], ['W', 'Change weather'],
-        ['V', 'Change vibe'], ['M', 'Mixer'], ['T', 'Focus timer and tasks'], ['L', 'Favourite this world'],
+        ['V', 'Change vibe'], ['R', 'Radio: world music or Silicon Based Lifeforms'], ['M', 'Mixer'], ['T', 'Focus timer and tasks'], ['L', 'Favourite this world'],
         ['S', 'Save scene as PNG'], ['P', 'Mini player'], ['F', 'Fullscreen'], [',', 'Settings'], ['?', 'This help'], ['Esc', 'Close panel'], ['Click', 'A world-themed effect on the scene'],
       ];
       return h('table', { class: 'keys' }, h('tbody', {}, ...rows.map(([k, d]) => h('tr', {}, h('td', {}, h('kbd', {}, k)), h('td', {}, d)))));

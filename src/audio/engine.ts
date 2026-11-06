@@ -167,7 +167,7 @@ export class AudioEngine {
 
   // ---------- voices ----------
 
-  playVoice(v: Voice, midis: number[], when: number, dur: number, vel: number, bus: TrackBus, dest: 'duck' | 'dry' = 'duck', level = 1): void {
+  playVoice(v: Voice, midis: number[], when: number, dur: number, vel: number, bus: TrackBus, dest: 'duck' | 'dry' = 'duck', level = 1, bright?: number): void {
     const ctx = this.ctx;
     const end = when + Math.max(0.03, dur);
     const stopAt = end + v.env.r * 3 + 0.1;
@@ -182,7 +182,8 @@ export class AudioEngine {
     const filt = ctx.createBiquadFilter();
     filt.type = v.filter.type;
     filt.Q.value = v.filter.q ?? 0.7;
-    const f0 = v.filter.freq;
+    // a sweep voice takes its cutoff from the track's brightness curve (exponential between min and max)
+    const f0 = v.sweep && bright !== undefined ? v.sweep.min * Math.pow(v.sweep.max / v.sweep.min, bright) : v.filter.freq;
     filt.frequency.setValueAtTime(f0, when);
     if (v.filter.env) {
       filt.frequency.linearRampToValueAtTime(f0 + v.filter.env * vel, when + Math.max(0.005, v.env.a));

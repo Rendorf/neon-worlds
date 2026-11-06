@@ -8,6 +8,8 @@ Inspired by [Lofi Cities](https://loficities.com), which pairs pixel-art city ni
 
 Twelve worlds ship in v1: Night City, Los Angeles 2019, Neo-Tokyo, Niihama, Chiba City, The Grid, Coruscant, Mega-City One, Vavatch Orbital, Millville, Arrakeen and The Citadel.
 
+**Silicon Based Lifeforms radio.** Press `R`, or the Radio chip, to swap each world's own music for a station of slow, warm psybient in the style of [Carbon Based Lifeforms](https://carbonbasedlifeforms.net). Its tracks run about five minutes in a long-form arrangement (beatless intro, build, groove, breakdown, groove, outro). The pad, sequence and bass filters follow one brightness curve, so the sound opens over minutes. A soft rolling bass, sidechained pads and a greenhouse-water field recording complete it. The station stays on as you change worlds and is shared with `?radio=lifeforms`. It is a tribute: composed live, not their music, and not affiliated with them.
+
 Everything is generated: every scene is drawn by code at 480×270 and loops every four minutes, every note and every ambient sound is synthesised with Web Audio. There are no samples, images or fonts to download, no backend and no tracking.
 
 ## Run it
@@ -27,12 +29,13 @@ npm run preview    # serve dist/ locally
 - World picker with thumbnails, favourites and a passport of visited worlds.
 - Weather per world: rain, acid rain, snow, ash, data rain, sandstorm, dust storm, smog, and a day-night cycle.
 - Endless generated music in each world's own style, with up next, skip, and a vibe switch (calm, focus, drive).
+- Radio: switch from world music to the Silicon Based Lifeforms psybient station, which plays over every world.
 - Synthesised world sounds with a per-world mixer.
 - Tour mode, focus timer with tasks, save scene as PNG, share link, mini player (picture-in-picture), fullscreen.
 - Settings: CRT scanlines, reduce motion, 12/24-hour clock, fill or whole-scene fit, tour length.
 - Keyboard shortcuts: press `?` in the app.
 
-State lives in `localStorage` only. Share links carry `?world=&weather=&vibe=`.
+State lives in `localStorage` only. Share links carry `?world=&weather=&vibe=` and, when the radio is on, `&radio=lifeforms`.
 
 ## How it is built
 
